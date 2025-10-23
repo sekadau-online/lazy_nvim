@@ -1,6 +1,15 @@
 # lazy_nvim
 Lazy Nvim starter pack
 
+#Compile menyesuaikan GLIBC
+sudo apt install ninja-build gettext cmake unzip curl build-essential -y
+git clone https://github.com/neovim/neovim.git
+cd neovim
+git checkout stable
+make CMAKE_BUILD_TYPE=Release
+sudo make install
+
+#
 wget https://github.com/neovim/neovim/releases/download/v0.11.4/nvim-linux-x86_64.appimage
 chmod u+x nvim-linux-x86_64.appimage
 sudo mv nvim-linux-x86_64.appimage /usr/local/bin/nvim
