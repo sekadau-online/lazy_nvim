@@ -13,6 +13,7 @@ if not vim.loop.fs_stat(lazypath) then
   })
 end
 vim.opt.rtp:prepend(lazypath)
+vim.opt.clipboard = "unnamedplus"
 
 -- =========================
 -- Load core configs
@@ -24,3 +25,4 @@ require("config.keymaps")
 -- Load Lazy.nvim plugin setup
 -- =========================
 require("config.lazy")
+
