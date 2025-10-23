@@ -12,3 +12,5 @@ vim.opt.signcolumn = "yes"
 vim.opt.mouse = "a"
 vim.opt.clipboard = "unnamedplus"
 vim.opt.scrolloff = 8
+vim.opt.splitbelow = true
+vim.opt.splitright = true
