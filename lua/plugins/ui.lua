@@ -1,16 +1,32 @@
 return {
-  { "folke/tokyonight.nvim", lazy = false, priority = 1000,
-    config = function() vim.cmd("colorscheme tokyonight") end },
+  -- Tema warna
+  {
+    "folke/tokyonight.nvim",
+    lazy = false,
+    priority = 1000,
+    config = function()
+      vim.cmd("colorscheme tokyonight")
+    end,
+  },
 
-  { "nvim-lualine/lualine.nvim", config = function()
-      require("lualine").setup({ options = { theme = "auto" } })
-    end },
+  -- Status line
+  {
+    "nvim-lualine/lualine.nvim",
+    config = function()
+      require("lualine").setup({
+        options = { theme = "auto" },
+      })
+    end,
+  },
 
-  { "nvim-tree/nvim-tree.lua", config = function()
+  -- File explorer
+  {
+    "nvim-tree/nvim-tree.lua",
+    config = function()
       require("nvim-tree").setup()
-    end },
+    end,
+  },
 
+  -- Icon support
   { "nvim-tree/nvim-web-devicons" },
-
-  { "nvim-lualine/lualine.nvim" },
 }
