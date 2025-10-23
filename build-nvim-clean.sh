@@ -13,12 +13,13 @@ sudo rm -rf ~/.local/share/nvim ~/.config/nvim/plugin ~/.cache/nvim || true
 sudo rm -rf ~/neovim || true
 echo "✅ Old Neovim removed (if any)."
 
-# 2️⃣ Install dependencies
+# 2️⃣ Install dependencies (build + clipboard)
 echo "[2/8] Installing dependencies..."
 sudo apt update -y
 sudo apt install -y \
   ninja-build gettext cmake unzip curl build-essential git pkg-config \
   libtool libtool-bin autoconf automake libevent-dev libuv1-dev \
+  libx11-dev libxtst-dev libxt-dev libsm-dev libice-dev \
   xclip xsel wl-clipboard
 echo "✅ Dependencies installed."
 
@@ -33,6 +34,7 @@ git checkout stable
 
 # 5️⃣ Build Neovim
 echo "[5/8] Building Neovim (this may take 5–15 min)..."
+make distclean || true
 make CMAKE_BUILD_TYPE=Release
 sudo make install
 echo "✅ Build complete."
@@ -58,15 +60,19 @@ fi
 
 # 8️⃣ Verification
 echo "[8/8] Verifying Neovim installation..."
-nvim --version | head -n 5 || echo "⚠️  Neovim not found in PATH!"
+nvim --version | head -n 10
+
+if nvim --version | grep -q '\+clipboard'; then
+  echo "✅ Clipboard support is active!"
+else
+  echo "❌ Clipboard support missing — check dependencies above."
+fi
 
 echo
 echo "===================================================="
 echo " 🎉 Neovim v$(nvim --version | head -n 1 | awk '{print $2}') successfully installed!"
 echo "===================================================="
-echo "🧩 Clipboard support should now work with: '+clipboard'"
-echo
-echo "To test clipboard:"
+echo "🧩 To verify clipboard inside Neovim:"
 echo "  :echo has('clipboard')  → should return 1"
 echo "  :checkhealth clipboard"
 echo
