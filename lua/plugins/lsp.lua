@@ -1,8 +1,19 @@
 return {
+  -- Core LSP config
   { "neovim/nvim-lspconfig" },
 
-  { "williamboman/mason.nvim", build = ":MasonUpdate", config = true },
-  { "williamboman/mason-lspconfig.nvim",
+  -- Mason: installer server LSP
+  {
+    "williamboman/mason.nvim",
+    build = ":MasonUpdate",
+    config = function()
+      require("mason").setup()
+    end,
+  },
+
+  -- Integrasi Mason dengan LSPConfig
+  {
+    "williamboman/mason-lspconfig.nvim",
     config = function()
       require("mason-lspconfig").setup({
         ensure_installed = { "lua_ls", "pyright", "ts_ls", "gopls", "html", "cssls" },
@@ -13,32 +24,6 @@ return {
       for _, s in ipairs(servers) do
         lspconfig[s].setup({})
       end
-    end
-  },
-
-  -- Completion
-  { "hrsh7th/nvim-cmp",
-    dependencies = {
-      "hrsh7th/cmp-nvim-lsp",
-      "hrsh7th/cmp-buffer",
-      "hrsh7th/cmp-path",
-      "L3MON4D3/LuaSnip",
-    },
-    config = function()
-      local cmp = require("cmp")
-      cmp.setup({
-        snippet = { expand = function(args)
-          require("luasnip").lsp_expand(args.body)
-        end },
-        mapping = cmp.mapping.preset.insert({
-          ["<C-Space>"] = cmp.mapping.complete(),
-          ["<CR>"] = cmp.mapping.confirm({ select = true }),
-        }),
-        sources = cmp.config.sources({
-          { name = "nvim_lsp" },
-          { name = "buffer" },
-        }),
-      })
-    end
+    end,
   },
 }
