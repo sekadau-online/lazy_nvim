@@ -1,8 +1,11 @@
 return {
-  -- Core LSP config
-  { "neovim/nvim-lspconfig" },
+  -- Core LSP (wajib)
+  {
+    "neovim/nvim-lspconfig",
+    lazy = false,
+  },
 
-  -- Mason: installer server LSP
+  -- Mason untuk menginstall LSP server
   {
     "williamboman/mason.nvim",
     build = ":MasonUpdate",
@@ -11,7 +14,7 @@ return {
     end,
   },
 
-  -- Integrasi Mason dengan LSPConfig
+  -- Integrasi Mason + LSPConfig (modern API)
   {
     "williamboman/mason-lspconfig.nvim",
     config = function()
@@ -19,10 +22,24 @@ return {
         ensure_installed = { "lua_ls", "pyright", "ts_ls", "gopls", "html", "cssls" },
       })
 
-      local lspconfig = require("lspconfig")
+      -- Daftar server yang ingin diaktifkan
       local servers = { "lua_ls", "pyright", "ts_ls", "gopls", "html", "cssls" }
-      for _, s in ipairs(servers) do
-        lspconfig[s].setup({})
+
+      -- Konfigurasi baru: gunakan vim.lsp.config
+      for _, name in ipairs(servers) do
+        vim.lsp.config[name] = {
+          cmd = { name },
+          capabilities = vim.lsp.protocol.make_client_capabilities(),
+          on_attach = function(_, bufnr)
+            local opts = { buffer = bufnr, silent = true }
+            vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+            vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+            vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+          end,
+        }
+
+        -- Aktifkan server
+        vim.lsp.enable(name)
       end
     end,
   },
