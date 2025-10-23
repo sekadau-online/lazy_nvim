@@ -6,6 +6,16 @@ chmod u+x nvim-linux-x86_64.appimage
 sudo mv nvim-linux-x86_64.appimage /usr/local/bin/nvim
 #atau
 sudo ln -s /path/to/nvim-linux-x86_64.appimage /usr/local/bin/nvim
+#tanpa fuse
+cd /usr/local/bin
+sudo rm -f nvim
+sudo wget https://github.com/neovim/neovim/releases/download/v0.9.5/nvim.appimage -O nvim
+sudo chmod +x nvim
+
+./nvim --appimage-extract
+mv squashfs-root nvim-root
+ln -sf /usr/local/bin/nvim-root/AppRun /usr/local/bin/nvim
+
 
 
 git clone https://github.com/folke/lazy.nvim.git ~/.local/share/nvim/lazy/lazy.nvim
