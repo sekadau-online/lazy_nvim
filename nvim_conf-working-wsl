@@ -2,7 +2,7 @@
 set -e
 
 echo "===================================================="
-echo " ⚙️  Neovim Full-Dev Setup — Lazy.nvim + Modern LSP"
+echo " ⚙️  Neovim Full-Dev Setup — Lazy.nvim (Stable & Fixed)"
 echo "===================================================="
 
 NVIM_DIR="$HOME/.config/nvim"
@@ -65,7 +65,7 @@ require("lazy").setup("plugins")
 EOF
 
 # -------------------------------
-# Unified plugin list (FIXED)
+# Unified & Safe Plugin List
 # -------------------------------
 echo "[3/5] Writing plugin list..."
 
@@ -95,7 +95,20 @@ return {
   { "folke/which-key.nvim", config = true },
   { "folke/trouble.nvim", config = true },
   { "lewis6991/gitsigns.nvim", config = true },
-  { "nvimdev/dashboard-nvim", config = true },  -- ✅ Only dashboard plugin
+
+  -- ✅ SAFE DASHBOARD — no crash
+  {
+    "nvimdev/dashboard-nvim",
+    event = "VimEnter",
+    config = function()
+      require("dashboard").setup({
+        theme = "doom",  -- more stable than "hyper"
+        hide = { statusline = false },
+        preview_command = false,  -- ⚠️ prevents project parsing errors
+        week_header = false,
+      })
+    end
+  },
 
   -- Telescope
   { "nvim-telescope/telescope.nvim", dependencies = { "nvim-lua/plenary.nvim" }, config = true },
@@ -127,7 +140,7 @@ return {
   {
     "williamboman/mason-lspconfig.nvim",
     config = function()
-      -- ❌ tsserver REMOVED — it's built into Neovim
+      -- ✅ tsserver REMOVED from Mason (it's built-in)
       require("mason-lspconfig").setup({
         ensure_installed = { "intelephense", "rust_analyzer", "html", "tailwindcss", "jsonls", "marksman" }
       })
@@ -138,9 +151,8 @@ return {
     dependencies = { "williamboman/mason-lspconfig.nvim", "hrsh7th/cmp-nvim-lsp" },
     config = function()
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
-      -- ✅ tsserver INCLUDED here (built-in, no Mason needed)
+      -- ✅ tsserver INCLUDED here (Neovim built-in LSP)
       local servers = { "intelephense", "rust_analyzer", "tsserver", "html", "tailwindcss", "jsonls", "marksman" }
-
       for _, name in ipairs(servers) do
         local config = vim.lsp.config[name]
         if config then
@@ -210,7 +222,10 @@ EOF
 echo "[4/5] Installing and syncing plugins..."
 nvim --headless +'Lazy sync' +qa
 
+# Clean any corrupted dashboard cache (optional but safe)
+rm -rf ~/.local/state/nvim/dashboard 2>/dev/null || true
+
 echo "[5/5] Done!"
 echo "===================================================="
-echo "✅ Setup complete! Launch Neovim with 'nvim'"
+echo "✅ Neovim setup complete! Launch with 'nvim'"
 echo "===================================================="
