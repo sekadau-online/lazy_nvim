@@ -1,0 +1,216 @@
+#!/usr/bin/env bash
+set -e
+
+echo "===================================================="
+echo " ⚙️  Neovim Full-Dev Setup — Lazy.nvim + Modern LSP"
+echo "===================================================="
+
+NVIM_DIR="$HOME/.config/nvim"
+BACKUP_DIR="$HOME/.config/nvim_backup_$(date +%Y-%m-%d_%H-%M-%S)"
+
+# Backup existing config
+if [ -d "$NVIM_DIR" ]; then
+  echo "[1/5] Backing up old config..."
+  mv "$NVIM_DIR" "$BACKUP_DIR"
+  echo "    Backup saved at $BACKUP_DIR"
+fi
+
+# Create folder structure
+mkdir -p "$NVIM_DIR/lua/core" "$NVIM_DIR/lua/plugins"
+
+# -------------------------------
+# Core files
+# -------------------------------
+echo "[2/5] Writing core configuration..."
+
+cat > "$NVIM_DIR/init.lua" <<'EOF'
+vim.loader.enable()
+require("core.options")
+require("core.keymaps")
+require("core.lazy")
+EOF
+
+cat > "$NVIM_DIR/lua/core/options.lua" <<'EOF'
+vim.opt.number = true
+vim.opt.relativenumber = true
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.expandtab = true
+vim.opt.termguicolors = true
+vim.opt.cursorline = true
+vim.opt.scrolloff = 8
+EOF
+
+cat > "$NVIM_DIR/lua/core/keymaps.lua" <<'EOF'
+vim.g.mapleader = "\\"
+local keymap = vim.keymap.set
+keymap("n", "<leader>e", ":NvimTreeToggle<CR>")
+keymap("n", "<leader>ff", ":Telescope find_files<CR>")
+keymap("n", "<leader>fg", ":Telescope live_grep<CR>")
+keymap("n", "<leader>tt", ":lua open_tinker()<CR>")
+keymap("n", "<leader>d", ":TroubleToggle<CR>")
+EOF
+
+cat > "$NVIM_DIR/lua/core/lazy.lua" <<'EOF'
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git", "clone", "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable", lazypath
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+require("lazy").setup("plugins")
+EOF
+
+# -------------------------------
+# Unified plugin list (FIXED)
+# -------------------------------
+echo "[3/5] Writing plugin list..."
+
+cat > "$NVIM_DIR/lua/plugins/init.lua" <<'EOF'
+return {
+  -- Base
+  "nvim-lua/plenary.nvim",
+  "nvim-tree/nvim-web-devicons",
+
+  -- Colorscheme (load early)
+  {
+    "folke/tokyonight.nvim",
+    priority = 1000,
+    config = function()
+      vim.cmd.colorscheme("tokyonight")
+    end
+  },
+
+  -- File explorer
+  { "nvim-tree/nvim-tree.lua", config = true },
+
+  -- UI
+  { "nvim-lualine/lualine.nvim", config = true },
+  { "akinsho/bufferline.nvim", config = true },
+  { "lukas-reineke/indent-blankline.nvim", main = "ibl", config = true },
+  { "NvChad/nvim-colorizer.lua", config = true },
+  { "folke/which-key.nvim", config = true },
+  { "folke/trouble.nvim", config = true },
+  { "lewis6991/gitsigns.nvim", config = true },
+  { "nvimdev/dashboard-nvim", config = true },  -- ✅ Only dashboard plugin
+
+  -- Telescope
+  { "nvim-telescope/telescope.nvim", dependencies = { "nvim-lua/plenary.nvim" }, config = true },
+
+  -- Editing helpers
+  { "windwp/nvim-autopairs", config = true },
+  { "numToStr/Comment.nvim", config = true },
+  { "kylechui/nvim-surround", config = true },
+
+  -- Terminal / Tinker
+  {
+    "akinsho/toggleterm.nvim",
+    config = function()
+      local Terminal = require("toggleterm.terminal").Terminal
+      _G.open_tinker = function()
+        local artisan = vim.fn.getcwd() .. "/artisan"
+        if vim.fn.filereadable(artisan) == 1 then
+          Terminal:new({ cmd = "php artisan tinker", direction = "float" }):toggle()
+        else
+          Terminal:new({ direction = "float" }):toggle()
+        end
+      end
+      require("toggleterm").setup()
+    end
+  },
+
+  -- LSP + Mason (MODERN)
+  { "williamboman/mason.nvim", config = true },
+  {
+    "williamboman/mason-lspconfig.nvim",
+    config = function()
+      -- ❌ tsserver REMOVED — it's built into Neovim
+      require("mason-lspconfig").setup({
+        ensure_installed = { "intelephense", "rust_analyzer", "html", "tailwindcss", "jsonls", "marksman" }
+      })
+    end
+  },
+  {
+    "neovim/nvim-lspconfig",
+    dependencies = { "williamboman/mason-lspconfig.nvim", "hrsh7th/cmp-nvim-lsp" },
+    config = function()
+      local capabilities = require("cmp_nvim_lsp").default_capabilities()
+      -- ✅ tsserver INCLUDED here (built-in, no Mason needed)
+      local servers = { "intelephense", "rust_analyzer", "tsserver", "html", "tailwindcss", "jsonls", "marksman" }
+
+      for _, name in ipairs(servers) do
+        local config = vim.lsp.config[name]
+        if config then
+          config.capabilities = vim.tbl_deep_extend("force", config.capabilities or {}, capabilities)
+          vim.lsp.start(config)
+        end
+      end
+    end
+  },
+
+  -- Snippets & Completion
+  {
+    "L3MON4D3/LuaSnip",
+    dependencies = { "rafamadriz/friendly-snippets" },
+    config = function()
+      require("luasnip.loaders.from_vscode").lazy_load()
+    end
+  },
+  {
+    "hrsh7th/nvim-cmp",
+    dependencies = {
+      "hrsh7th/cmp-nvim-lsp",
+      "hrsh7th/cmp-buffer",
+      "hrsh7th/cmp-path",
+      "saadparwaiz1/cmp_luasnip"
+    },
+    config = function()
+      local cmp = require("cmp")
+      local luasnip = require("luasnip")
+      cmp.setup({
+        snippet = { expand = function(args) luasnip.lsp_expand(args.body) end },
+        mapping = cmp.mapping.preset.insert({
+          ["<C-Space>"] = cmp.mapping.complete(),
+          ["<CR>"] = cmp.mapping.confirm({ select = true }),
+          ["<Tab>"] = cmp.mapping(function(fb)
+            if cmp.visible() then cmp.select_next_item()
+            elseif luasnip.expand_or_jumpable() then luasnip.expand_or_jump()
+            else fb() end
+          end, { "i", "s" })
+        }),
+        sources = {{name="nvim_lsp"}, {name="luasnip"}, {name="buffer"}, {name="path"}}
+      })
+    end
+  },
+}
+EOF
+
+# -------------------------------
+# README
+# -------------------------------
+cat > "$NVIM_DIR/README.md" <<'EOF'
+# Neovim Setup
+## Shortcuts
+\e  → Toggle file explorer  
+\ff → Find file  
+\fg → Live grep  
+\tt → Laravel Tinker / Terminal  
+\d  → Trouble (errors/warnings)
+
+## Update plugins
+:Lazy sync
+EOF
+
+# -------------------------------
+# Install plugins
+# -------------------------------
+echo "[4/5] Installing and syncing plugins..."
+nvim --headless +'Lazy sync' +qa
+
+echo "[5/5] Done!"
+echo "===================================================="
+echo "✅ Setup complete! Launch Neovim with 'nvim'"
+echo "===================================================="
